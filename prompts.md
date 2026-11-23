@@ -81,3 +81,11 @@
 - **Asked:** Run radius capacity validations, record the results in `spec.md`, and commit with the message `Validate`.
 - **Changed:** Recorded chart-boundary and warning/tip threshold results, a Tkinter warning/reset check, and the discrepancy between trolley radius and the specified hook/load distance.
 - **Worked:** Calculation and corrected Tkinter checks passed. An initial GUI test used an overloaded 8,000 lb load while expecting caution; the mistaken expectation and corrected check are documented in the specification. Commit requested.
+
+- **Asked:** Create an extremely detailed README explaining the libraries needed to run the game and how to run it.
+- **Changed:** Added README.md with Python, Tkinter, Matplotlib, and NumPy requirements; operating-system setup and virtual environment steps; launch instructions; controls and gameplay; troubleshooting; and project file descriptions.
+- **Worked:** Documentation reflects the current source imports and launch command; existing Python, Tkinter, Matplotlib, and NumPy imports were checked in this environment.
+
+- **Asked:** Commit the README changes.
+- **Changed:** Included the README and this prompt-log entry in the requested commit.
+- **Worked:** Commit verification follows.
