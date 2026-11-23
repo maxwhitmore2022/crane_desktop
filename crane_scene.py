@@ -46,7 +46,7 @@ class CraneScene:
         ax.plot([50, 145], [108, 108], color="#ffd21f", linewidth=6)
         ax.add_patch(Rectangle((48, 8), 5, 100,
             facecolor="#ffd21f", edgecolor="#d69c00"))
-        trolley = radius
+        trolley = 50 + (radius - 50) * math.cos(angle)
         ax.plot([trolley, trolley], [108, height], color=fg, linewidth=1.5)
         ax.scatter([trolley], [108], marker="s", s=70, color="#dc4c5a", zorder=5)
         sway = 0

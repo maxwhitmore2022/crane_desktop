@@ -3,6 +3,7 @@
 import time
 import tkinter as tk
 from tkinter import messagebox
+import math
 
 from crane_calculations import clamp_radius, capacity_at_radius, is_caution, is_overloaded
 from crane_scene import CraneScene
@@ -106,12 +107,17 @@ class CraneApp:
         self.held.discard(event.keysym.lower())
 
     def nearest_target(self):
+        hook_x = self.horizontal_position()
         for i, target in enumerate(self.state.targets):
             if any(load.delivered_to == i for load in self.state.loads):
                 continue
-            if abs(self.radius - target.radius_ft) <= 4 and abs(self.height - target.height_ft) <= 6:
+            if abs(hook_x - target.radius_ft) <= 4 and abs(self.height - target.height_ft) <= 6:
                 return i
         return None
+
+    def horizontal_position(self):
+        """Side-view projection of the jib trolley position."""
+        return 50 + (self.radius - 50) * math.cos(self.angle)
 
     def enter_action(self):
         if self.state.carried is None:
@@ -140,7 +146,8 @@ class CraneApp:
             speed = 35 * dt
             self.radius = clamp_radius(self.radius + speed * (int("d" in self.held) - int("a" in self.held)))
             self.height = max(12, min(100, self.height + speed * 1.3 * (int("w" in self.held) - int("s" in self.held))))
-            self.angle += (int("right" in self.held) - int("left" in self.held)) * speed * .8
+            self.angle = max(-1.1, min(1.1, self.angle +
+                (int("right" in self.held) - int("left" in self.held)) * dt * .8))
             self.state.tick(dt)
             weight = self.state.loads[self.state.carried].weight_lb if self.state.carried is not None else 0
             cap = capacity_at_radius(self.radius)
@@ -161,8 +168,8 @@ class CraneApp:
 
     def collision_detected(self):
         """Conservative hook/boom clearance check against the visible crane path."""
-        other_x = 82 + 20 * __import__("math").sin(self.scene.phase / 2)
-        hook_x = self.radius
+        other_x = 82 + 20 * math.sin(self.scene.phase / 2)
+        hook_x = self.horizontal_position()
         if 70 <= self.height <= 106 and abs(hook_x - other_x) < 4:
             return True
         if self.state.carried is not None and 96 <= self.height <= 104:

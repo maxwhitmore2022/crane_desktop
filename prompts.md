@@ -37,3 +37,11 @@
 - **Asked:** Commit the changes and clear the working tree.
 - **Changed:** Recorded this request; staging and commit are pending.
 - **Worked:** Yes — committed as `c4d11e0`; the working tree is clean.
+
+- **Asked:** Reported that the app did not work and clarified that controls/gameplay failed broadly.
+- **Changed:** Fixed the left/right jib swing so it changes the visible trolley projection and target matching. Reproduced module imports and ran a basic game-state flow through load selection, pickup, two deliveries, and scoring.
+- **Worked:** Syntax and basic game-state flow passed; full interactive behavior still needs validation in the user's GUI environment.
+
+- **Asked:** Commit the jib swing fix and related changes.
+- **Changed:** Recorded this commit request; staging is pending.
+- **Worked:** Pending commit verification.
