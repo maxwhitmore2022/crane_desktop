@@ -53,3 +53,15 @@
 - **Asked:** Replace the graph with a table, randomly preselect two loads, require crane swing, add crane color selection, test the game five times, and commit the changes.
 - **Changed:** Replaced the chart graph with a highlighted capacity table; preselected two random loads while allowing changes before starting; added target swing angles and visible swing feedback; added a crane color picker; restored level score on retry and stopped advancement after level five. Included the existing redraw throttling changes.
 - **Worked:** Five separate Tkinter runs passed checks for starting and movement, color selection and rendering, swing-gated delivery, two-load completion and level advancement, and retry plus load-chart boundaries. These runs invoked controls programmatically rather than using physical mouse clicks. Commit requested.
+
+- **Asked:** Add a light that shows when a load can be dropped.
+- **Changed:** Highlighted a valid delivery target in yellow and displayed a ready-to-drop message when the carried load meets the existing placement and swing requirements.
+- **Worked:** Yes — a Tkinter check confirmed the indicator stays off at the wrong angle, appears at a valid target, and disappears after delivery.
+
+- **Asked:** Make the load drop-off area larger and easier to use.
+- **Changed:** Enlarged the visible target to match a wider delivery area and relaxed the horizontal, height, and swing tolerances. Kept the ready-to-drop highlight tied to the same delivery rules.
+- **Worked:** Yes — a Tkinter check confirmed the larger target, a delivery near its edge, the ready indicator, and rejection outside the height boundary.
+
+- **Asked:** Make the drop-off location light up after delivery and commit the changes.
+- **Changed:** Added a persistent green glow and delivered-weight label to completed targets, while keeping the yellow ready-to-drop highlight. Included the larger target and easier drop tolerances in the commit.
+- **Worked:** Yes — a Tkinter check confirmed the ready indicator, delivered glow and label, and clearing the glow on retry. Changes are being committed.

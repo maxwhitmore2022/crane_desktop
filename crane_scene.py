@@ -6,6 +6,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from crane_calculations import LOAD_CHART
+from game_state import TARGET_X_TOLERANCE, TARGET_HEIGHT_TOLERANCE
 
 
 class CraneScene:
@@ -21,7 +22,7 @@ class CraneScene:
         self.last_draw = 0.0
         self.draw_interval = 0.16  # Keep Matplotlib work below 7 frames per second.
 
-    def draw(self, state, radius, height, angle, load_weight, capacity):
+    def draw(self, state, radius, height, angle, load_weight, capacity, ready_target=None):
         now = time.monotonic()
         if now - self.last_draw < self.draw_interval:
             return
@@ -76,11 +77,25 @@ class CraneScene:
             ax.scatter([x], [18], s=95, marker="s", color="#be8b19" if item.selected else "#d69c00")
             ax.text(x, 23, f"{item.weight_lb//1000}k", ha="center", fontsize=7, color=fg)
         for i, target in enumerate(state.targets):
-            filled = any(item.delivered_to == i for item in state.loads)
+            delivered = next((item for item in state.loads if item.delivered_to == i), None)
+            filled = delivered is not None
             target_x = 50 + (target.radius_ft - 50) * math.cos(target.swing)
-            ax.scatter([target_x], [target.height_ft], s=160, marker="s",
-                       facecolors="#2aa876" if filled else "none", edgecolors="#2aa876", linewidths=2)
-            ax.text(target_x, target.height_ft + 8, f"{target.label} {math.degrees(target.swing):+.0f}°", ha="center", color=fg, fontsize=8)
+            ready = i == ready_target
+            if filled:
+                ax.add_patch(Rectangle(
+                    (target_x - TARGET_X_TOLERANCE - 2, target.height_ft - TARGET_HEIGHT_TOLERANCE - 2),
+                    2 * TARGET_X_TOLERANCE + 4, 2 * TARGET_HEIGHT_TOLERANCE + 4,
+                    facecolor="#74ff9c", edgecolor="#35e86a", linewidth=3, alpha=.45, zorder=5))
+            ax.add_patch(Rectangle(
+                (target_x - TARGET_X_TOLERANCE, target.height_ft - TARGET_HEIGHT_TOLERANCE),
+                2 * TARGET_X_TOLERANCE, 2 * TARGET_HEIGHT_TOLERANCE,
+                facecolor="#fff35a" if ready else ("#2aa876" if filled else "none"),
+                edgecolor="#ffb300" if ready else "#2aa876", linewidth=3, alpha=.8, zorder=6))
+            if filled:
+                ax.text(target_x, target.height_ft, f"✓ {delivered.weight_lb:,} lb", ha="center",
+                        va="center", color="#102a17", fontsize=8, fontweight="bold", zorder=8)
+            ax.text(target_x, target.height_ft + TARGET_HEIGHT_TOLERANCE + 3,
+                    f"{target.label} {math.degrees(target.swing):+.0f}°", ha="center", color=fg, fontsize=8)
         # Predictable, independent second crane cycle.
         self.phase += .06
         other_x = 82 + 20 * math.sin(self.phase / 2)

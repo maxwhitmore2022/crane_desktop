@@ -7,7 +7,7 @@ import math
 
 from crane_calculations import clamp_radius, capacity_at_radius, is_caution, is_overloaded
 from crane_scene import CraneScene
-from game_state import GameState
+from game_state import GameState, TARGET_X_TOLERANCE, TARGET_HEIGHT_TOLERANCE, TARGET_SWING_TOLERANCE
 
 
 class CraneApp:
@@ -119,8 +119,9 @@ class CraneApp:
             if any(load.delivered_to == i for load in self.state.loads):
                 continue
             target_x = 50 + (target.radius_ft - 50) * math.cos(target.swing)
-            if (abs(hook_x - target_x) <= 2 and abs(self.height - target.height_ft) <= 4
-                    and abs(self.angle - target.swing) <= 0.12):
+            if (abs(hook_x - target_x) <= TARGET_X_TOLERANCE
+                    and abs(self.height - target.height_ft) <= TARGET_HEIGHT_TOLERANCE
+                    and abs(self.angle - target.swing) <= TARGET_SWING_TOLERANCE):
                 return i
         return None
 
@@ -136,6 +137,8 @@ class CraneApp:
                 self.state.message = "Load picked up. Move it to a matching target."
         else:
             outcome, _ = self.state.set_down(self.nearest_target())
+            if outcome == "delivered":
+                self.scene.last_draw = 0
             if outcome == "delivered" and self.state.finished:
                 self.next_button.config(state="normal")
         self.refresh_load_buttons()
@@ -202,6 +205,9 @@ class CraneApp:
         caution = is_caution(weight, capacity) if weight else False
         minutes, seconds = divmod(int(self.state.remaining), 60)
         condition = "TIP LIMIT" if weight and is_overloaded(weight, capacity) else ("CAUTION ≥90%" if caution else "Safe")
+        ready_target = self.nearest_target() if self.state.running and self.state.carried is not None else None
+        if ready_target is not None:
+            condition += f"    READY TO DROP AT {self.state.targets[ready_target].label} — press Enter"
         carried_text = f"{weight:,} lb" if weight else "None"
         safety = f"    Safety {weight/capacity:.1%}" if weight else ""
         status_text = (
@@ -213,7 +219,7 @@ class CraneApp:
         if status_text != self.last_status:
             self.status.set(status_text)
             self.last_status = status_text
-        self.scene.draw(self.state, self.radius, self.height, self.angle, weight, capacity)
+        self.scene.draw(self.state, self.radius, self.height, self.angle, weight, capacity, ready_target)
         self.start_button.config(state="normal" if not self.state.running and not self.state.finished else "disabled")
         self.retry_button.config(state="normal")
         self.next_button.config(state="normal" if self.state.won and self.state.level < 5 else "disabled")
