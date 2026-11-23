@@ -93,6 +93,24 @@ Use the conservative next-larger-radius rule for all radii:
 
 Implement and test boundary behavior at 89.9%, 90%, 99.9%, and 100% of capacity. Verify the app does not warn below 90%, warns at exactly 90%, does not tip below 100%, and tips at 100% or above.
 
+### Radius and capacity validation results — 2026-11-23
+
+The calculation functions in `crane_calculations.py` passed these checks:
+
+| Radius (ft) | Calculated capacity (lb) | Result |
+|---:|---:|---|
+| 50 | 20,000 | Pass |
+| 50.001, 62, 75 | 13,000 | Pass |
+| 75.001, 100 | 9,000 | Pass |
+| 100.001, 125 | 7,000 | Pass |
+| 125.001, 138, 150 | 5,500 | Pass |
+
+At each of 62, 125, and 138 ft, the 89.9%, 90%, 99.9%, 100%, and 100.1% load cases passed: caution begins at 90%, and overload begins at 100%. The 90% warning loads were 11,700 lb, 6,300 lb, and 4,950 lb respectively; the 100% loads were 13,000 lb, 7,000 lb, and 5,500 lb. Clamping at 50 and 150 ft passed, and capacity lookups outside that range raised `ValueError`.
+
+A Tkinter check with an injected 6,300 lb test load also passed: at 100 ft it was safe against 9,000 lb, just above 100 ft it showed caution against 7,000 lb, and just above 125 ft it triggered the overload warning and level reset against 5,500 lb. The 6,300 lb load was injected for validation and is not a preset. An earlier check incorrectly expected an 8,000 lb load at just above 100 ft to show caution; it exceeds the 7,000 lb capacity and correctly shows the tip limit instead.
+
+**Known discrepancy:** The application passes its trolley-radius value to the load chart, while the specification defines radius as horizontal distance from the tower center to the hook or suspended load. Swing projection and wind can make those values differ. These checks validate the lookup and thresholds for the supplied radius; they do not establish that the displayed load's geometry complies with that definition. Tip-over animation was not validated.
+
 Also test delivery scoring and both pickup/setdown states:
 - A delivered load awards 1 point per pound of load weight.
 - If a level timer reaches zero, end the level and offer a retry or restart action.

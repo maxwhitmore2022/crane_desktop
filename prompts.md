@@ -77,3 +77,7 @@
 - **Asked:** Commit the recent changes.
 - **Changed:** Included the delivery readiness fix, clearer jib angle guidance, and prompt log in the commit.
 - **Worked:** The previous Tkinter checks passed; commit verification follows.
+
+- **Asked:** Run radius capacity validations, record the results in `spec.md`, and commit with the message `Validate`.
+- **Changed:** Recorded chart-boundary and warning/tip threshold results, a Tkinter warning/reset check, and the discrepancy between trolley radius and the specified hook/load distance.
+- **Worked:** Calculation and corrected Tkinter checks passed. An initial GUI test used an overloaded 8,000 lb load while expecting caution; the mistaken expectation and corrected check are documented in the specification. Commit requested.
