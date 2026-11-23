@@ -1,0 +1,1496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tower Crane Challenge</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #eef2f6;
+      --panel: #ffffff;
+      --panel-2: #f6f8fa;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d7dde7;
+      --yellow: #ffd21f;
+      --yellow-dark: #d69c00;
+      --blue: #4a70b5;
+      --green: #2aa876;
+      --red: #dc4c5a;
+      --sky: #dff3fb;
+      --ground: #d9c6a4;
+      --building: #9ba8b6;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page: #111827;
+      --panel: #1c2535;
+      --panel-2: #242f43;
+      --ink: #f4f7fb;
+      --muted: #b6c0d1;
+      --line: #39465a;
+      --yellow: #f2c84b;
+      --yellow-dark: #be8b19;
+      --blue: #83a8df;
+      --green: #67d2a5;
+      --red: #ff7a87;
+      --sky: #1b3550;
+      --ground: #66583f;
+      --building: #708197;
+    }
+
+    [data-theme="dark"] {
+      --ink: #ffffff;
+    }
+
+    [data-theme="dark"] .panel,
+    [data-theme="dark"] .status,
+    [data-theme="dark"] .topbar,
+    [data-theme="dark"] .theme-toggle,
+    [data-theme="dark"] .control {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .muted,
+    [data-theme="dark"] .status label {
+      color: #d8e1ef;
+    }
+
+    [data-theme="dark"] #night-stars,
+    [data-theme="dark"] #night-moon {
+      opacity: 1;
+    }
+
+    [data-theme="dark"] #day-sun,
+    [data-theme="dark"] #day-clouds {
+      opacity: 0;
+    }
+
+    #night-stars,
+    #night-moon {
+      opacity: 0;
+    }
+
+    #day-sun,
+    #day-clouds {
+      opacity: 1;
+    }
+
+    [data-theme="dark"] .scene text {
+      fill: #ffffff;
+    }
+
+    [data-theme="dark"] #crane-cable {
+      stroke: #ffffff;
+    }
+
+    #delivery-targets rect {
+      transition: stroke 120ms ease, stroke-width 120ms ease, filter 120ms ease;
+    }
+
+    #delivery-targets rect.drop-ready {
+      stroke: #ffef57;
+      stroke-width: 7;
+      filter: drop-shadow(0 0 8px #ffd21f);
+      animation: target-pulse 700ms ease-in-out infinite alternate;
+    }
+
+    @keyframes target-pulse {
+      from { filter: drop-shadow(0 0 3px #ffd21f); }
+      to { filter: drop-shadow(0 0 12px #fff49a); }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      max-width: 1500px;
+      margin: 0 auto 12px;
+    }
+
+    .title {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: clamp(1.15rem, 2vw, 1.65rem);
+    }
+
+    .title span {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 8px 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .theme-toggle .sun {
+      color: #c58b00;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 270px;
+      gap: 12px;
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+
+    .game-column {
+      min-width: 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    .statusbar {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .status {
+      min-width: 0;
+      padding: 10px 12px;
+      border-right: 1px solid var(--line);
+    }
+
+    .status:last-child { border-right: 0; }
+
+    .status label {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .status strong {
+      display: block;
+      font-size: clamp(0.92rem, 1.5vw, 1.15rem);
+      white-space: nowrap;
+    }
+
+    .status .good { color: var(--green); }
+    .status .warn { color: #b56a00; }
+
+    .scene {
+      position: relative;
+      min-height: 430px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .scene svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 430px;
+    }
+
+    .side-panel {
+      display: grid;
+      align-content: start;
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 12px;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 0.78rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .load-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .load-table th,
+    .load-table td {
+      border-bottom: 1px solid var(--line);
+      padding: 7px 5px;
+      text-align: right;
+    }
+
+    .load-table th {
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .load-table th:first-child,
+    .load-table td:first-child { text-align: left; }
+
+    .load-table tr.current {
+      background: color-mix(in srgb, var(--yellow) 24%, transparent);
+      font-weight: 900;
+    }
+
+    .chart-current {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 9px;
+      border-radius: 8px;
+      background: var(--panel-2);
+      font-size: 0.78rem;
+    }
+
+    .controls {
+      display: grid;
+      gap: 8px;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+    }
+
+    .control {
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--ink);
+      box-shadow: 0 2px 0 var(--line);
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    .control:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+
+    .control.pressed {
+      transform: translateY(1px);
+      box-shadow: none;
+      border-color: var(--yellow-dark);
+      background: color-mix(in srgb, var(--yellow) 35%, var(--panel-2));
+    }
+
+    .control-wide {
+      grid-column: 1 / -1;
+      background: var(--yellow);
+      color: #3f3400;
+      border-color: var(--yellow-dark);
+      font-weight: 900;
+    }
+
+    .key {
+      display: inline-grid;
+      min-width: 26px;
+      height: 26px;
+      place-items: center;
+      margin-right: 5px;
+      border: 1px solid var(--line);
+      border-bottom-width: 3px;
+      border-radius: 5px;
+      background: var(--panel);
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+
+    .warning {
+      margin: 0;
+      border: 1px solid color-mix(in srgb, var(--green) 55%, var(--line));
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--green) 10%, var(--panel));
+      color: var(--ink);
+      padding: 9px;
+      font-size: 0.78rem;
+      text-align: center;
+    }
+
+    .warning.bad {
+      border-color: var(--red);
+      background: color-mix(in srgb, var(--red) 12%, var(--panel));
+    }
+
+    .warning.good {
+      border-color: var(--green);
+      background: color-mix(in srgb, var(--green) 12%, var(--panel));
+    }
+
+    .levels {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .level-dot {
+      height: 7px;
+      border-radius: 99px;
+      background: var(--line);
+    }
+
+    .level-dot.active { background: var(--yellow-dark); }
+
+    .effect-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .game-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: none;
+      place-items: center;
+      background: rgb(10 15 25 / 68%);
+      backdrop-filter: blur(4px);
+    }
+
+    .game-overlay.visible {
+      display: grid;
+    }
+
+    .overlay-card {
+      width: min(420px, calc(100vw - 32px));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 20px 70px rgb(0 0 0 / 35%);
+    }
+
+    .overlay-card h2 {
+      margin: 0 0 8px;
+      font-size: clamp(1.35rem, 5vw, 2rem);
+    }
+
+    .overlay-card p {
+      color: var(--muted);
+      margin: 0 0 18px;
+    }
+
+    .overlay-card button {
+      border: 0;
+      border-radius: 9px;
+      background: var(--yellow);
+      color: #3f3400;
+      padding: 12px 18px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .overlay-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .overlay-actions button.secondary {
+      background: var(--panel-2);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    .explosion {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #fff4a8;
+      box-shadow:
+        0 0 20px 12px #ffbf31,
+        0 0 55px 35px #ff6b21,
+        0 0 110px 75px rgb(194 45 22 / 72%);
+      animation: explosion-burst 1.7s ease-out forwards;
+    }
+
+    .explosion::before,
+    .explosion::after {
+      content: "";
+      position: absolute;
+      inset: -90px;
+      border: 18px solid rgb(58 42 40 / 75%);
+      border-radius: 50%;
+      animation: smoke-ring 1.9s ease-out forwards;
+    }
+
+    .explosion::after {
+      inset: -145px;
+      border-width: 12px;
+      opacity: .5;
+    }
+
+    .debris {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: var(--yellow);
+      animation: debris-flight 1.5s cubic-bezier(.2,.7,.3,1) forwards;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -20px;
+      width: 10px;
+      height: 16px;
+      border-radius: 2px;
+      animation: confetti-fall var(--fall-time) linear forwards;
+    }
+
+    .scene.shake {
+      animation: scene-shake 420ms steps(2, end);
+    }
+
+    @keyframes explosion-burst {
+      0% { transform: scale(.15); opacity: 1; }
+      35% { transform: scale(5.5); opacity: 1; }
+      100% { transform: scale(9); opacity: 0; }
+    }
+
+    @keyframes smoke-ring {
+      0% { transform: scale(.2); opacity: .9; }
+      100% { transform: scale(1.8) translateY(-35px); opacity: 0; }
+    }
+
+    @keyframes debris-flight {
+      to {
+        transform: translate(var(--debris-x), var(--debris-y)) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes confetti-fall {
+      to {
+        transform: translate(var(--confetti-x), 105vh) rotate(1080deg);
+        opacity: .8;
+      }
+    }
+
+    @keyframes scene-shake {
+      20% { transform: translate(-8px, 5px); }
+      40% { transform: translate(9px, -6px); }
+      60% { transform: translate(-6px, 7px); }
+      80% { transform: translate(7px, -4px); }
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .side-panel {
+        grid-template-columns: 1fr 1fr;
+      }
+      .scene, .scene svg { min-height: 390px; }
+    }
+
+    @media (max-width: 650px) {
+      .app { padding: 8px; }
+      .topbar { margin-bottom: 8px; }
+      .title span { display: none; }
+      .layout, .game-column, .side-panel { gap: 8px; }
+      .statusbar {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .status {
+        border-bottom: 1px solid var(--line);
+      }
+      .status:nth-child(3) { border-right: 0; }
+      .status:nth-child(n+4) {
+        border-bottom: 0;
+        grid-column: span 1;
+      }
+      .status:last-child { grid-column: span 2; }
+      .scene, .scene svg { min-height: 330px; }
+      .side-panel { grid-template-columns: 1fr; }
+      .panel { padding: 10px; }
+      .controls { grid-template-columns: 1fr 1fr; }
+      .controls .control-row { grid-template-columns: repeat(2, 1fr); }
+      .controls .warning,
+      .controls .levels { grid-column: 1 / -1; }
+      .control { min-height: 52px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" data-theme="light">
+    <header class="topbar">
+      <div class="title">
+        <h1>Tower Crane Challenge</h1>
+        <span id="level-title">Level 1 / 5</span>
+      </div>
+      <button class="theme-toggle" type="button" aria-label="Switch theme">
+        <span class="sun" aria-hidden="true">☀</span>
+        <span class="theme-label">Light mode</span>
+      </button>
+    </header>
+
+    <div class="layout">
+      <section class="game-column" aria-label="Crane game area">
+        <div class="statusbar" aria-label="Game status">
+          <div class="status">
+            <label>Timer</label>
+            <strong id="timer-status">03:00</strong>
+          </div>
+          <div class="status">
+            <label>Score</label>
+            <strong id="score-status">0 pts</strong>
+          </div>
+          <div class="status">
+            <label>Load</label>
+            <strong id="load-status">No load</strong>
+          </div>
+          <div class="status">
+            <label>Radius</label>
+            <strong id="radius-status">75 ft</strong>
+          </div>
+          <div class="status">
+            <label>Capacity</label>
+            <strong id="capacity-status" class="warn">46% safe</strong>
+          </div>
+        </div>
+
+        <div class="scene" aria-label="Side view crane and construction building">
+          <svg viewBox="0 0 1000 500" role="img" aria-labelledby="scene-title scene-desc">
+            <title id="scene-title">Tower crane construction mockup</title>
+            <desc id="scene-desc">A yellow tower crane lifts a load beside a partially built building with staging and delivery positions.</desc>
+            <rect width="1000" height="500" fill="var(--sky)" />
+            <g id="day-sun">
+              <circle cx="885" cy="82" r="38" fill="#ffe89a" opacity=".55" />
+            </g>
+            <g id="night-moon">
+              <circle cx="885" cy="82" r="34" fill="#f7f1bf" />
+              <circle cx="902" cy="72" r="34" fill="var(--sky)" />
+            </g>
+            <g id="night-stars" fill="#ffffff">
+              <circle cx="95" cy="68" r="3"/>
+              <circle cx="175" cy="125" r="2"/>
+              <circle cx="260" cy="55" r="2.5"/>
+              <circle cx="350" cy="108" r="2"/>
+              <circle cx="448" cy="48" r="3"/>
+              <circle cx="552" cy="126" r="2"/>
+              <circle cx="650" cy="58" r="2.5"/>
+              <circle cx="744" cy="118" r="2"/>
+              <circle cx="805" cy="38" r="2.5"/>
+              <path d="M220 145h12M226 139v12M700 100h10M705 95v10" stroke="#ffffff" stroke-width="2"/>
+            </g>
+            <g id="day-clouds" opacity=".42" fill="#ffffff">
+              <ellipse cx="120" cy="92" rx="48" ry="15"/>
+              <ellipse cx="157" cy="84" rx="31" ry="18"/>
+              <ellipse cx="700" cy="62" rx="54" ry="14"/>
+              <ellipse cx="743" cy="55" rx="32" ry="16"/>
+            </g>
+
+            <rect y="430" width="1000" height="70" fill="var(--ground)" />
+            <path d="M0 430H1000" stroke="#a58e69" stroke-width="4"/>
+
+            <g id="building" stroke="#596879" stroke-width="3">
+              <rect x="560" y="350" width="310" height="80" fill="var(--building)" />
+              <rect x="560" y="350" width="310" height="80" fill="none" />
+              <path d="M560 350H870M560 390H870M560 350V430M610 350V430M660 350V430M710 350V430M760 350V430M810 350V430M860 350V430M870 350V430" opacity=".7"/>
+
+              <rect x="560" y="270" width="190" height="80" fill="var(--building)" />
+              <rect x="560" y="270" width="190" height="80" fill="none" />
+              <path d="M560 270H750M560 310H750M560 270V350M610 270V350M660 270V350M710 270V350M750 270V350" opacity=".7"/>
+
+              <rect x="575" y="278" width="70" height="64" rx="3" fill="#d8edf4" stroke="#596879"/>
+              <rect x="665" y="278" width="70" height="64" rx="3" fill="#d8edf4" stroke="#596879"/>
+              <rect x="575" y="358" width="70" height="64" rx="3" fill="#d8edf4" stroke="#596879"/>
+              <rect x="665" y="358" width="70" height="64" rx="3" fill="#d8edf4" stroke="#596879"/>
+              <rect x="755" y="358" width="70" height="64" rx="3" fill="#d8edf4" stroke="#596879"/>
+              <path d="M560 270L750 270M560 270L560 350M560 350L870 350M560 350L560 430" stroke="#dce4ec" stroke-width="8"/>
+            </g>
+
+            <g id="delivery-targets">
+              <rect id="target-a1" x="575" y="278" width="70" height="64" rx="3" fill="#aef1b5" fill-opacity=".28" stroke="#27a36a" stroke-width="4" stroke-dasharray="9 7"/>
+              <rect id="target-a2" x="665" y="358" width="70" height="64" rx="3" fill="#aef1b5" fill-opacity=".28" stroke="#27a36a" stroke-width="4" stroke-dasharray="9 7"/>
+              <text id="target-label-a1" x="610" y="315" fill="#168252" font-size="15" text-anchor="middle" font-weight="800" stroke="none">A1</text>
+              <text id="target-label-a2" x="700" y="395" fill="#168252" font-size="15" text-anchor="middle" font-weight="800" stroke="none">A2</text>
+            </g>
+
+            <g id="tower-crane" stroke="#29384a" stroke-linejoin="round">
+              <rect x="471" y="95" width="58" height="335" fill="#f8dc4a" stroke-width="5"/>
+              <rect x="478" y="105" width="44" height="315" fill="none" stroke="#8c760d" stroke-width="3"/>
+              <path d="M478 105V420M522 105V420M478 105L522 145M522 105L478 145M478 145L522 185M522 145L478 185M478 185L522 225M522 185L478 225M478 225L522 265M522 225L478 265M478 265L522 305M522 265L478 305M478 305L522 345M522 305L478 345M478 345L522 385M522 345L478 385M478 385L522 420M522 385L478 420" fill="none" stroke="#8c760d" stroke-width="3"/>
+
+              <g id="crane-top">
+              <rect x="454" y="83" width="92" height="28" rx="3" fill="var(--yellow)" stroke-width="5"/>
+              <rect x="305" y="68" width="195" height="18" rx="2" fill="var(--yellow)" stroke-width="4"/>
+              <rect x="500" y="68" width="280" height="18" rx="2" fill="var(--yellow)" stroke-width="4"/>
+              <path d="M305 68V86M305 68L500 86M305 86L500 68M305 68H500M305 86H500M500 68V86M500 68L780 86M500 86L780 68M500 68H780M500 86H780" fill="none" stroke="#8c760d" stroke-width="3"/>
+              <polygon points="305,68 305,86 252,86" fill="var(--yellow)" stroke-width="5"/>
+              <rect x="780" y="68" width="28" height="18" fill="#eaaf16" stroke-width="4"/>
+              <rect x="250" y="83" width="55" height="25" rx="3" fill="#d49a1d" stroke-width="4"/>
+              <g id="trolley">
+                <rect id="trolley-body" x="590" y="86" width="46" height="24" rx="3" fill="#e8eef5" stroke-width="4"/>
+                <circle id="wheel-a" cx="601" cy="110" r="7" fill="#596879" stroke="none"/>
+                <circle id="wheel-b" cx="625" cy="110" r="7" fill="#596879" stroke="none"/>
+              </g>
+              <line id="crane-cable" x1="613" y1="110" x2="613" y2="326" stroke="#26384b" stroke-width="5"/>
+              <rect id="crane-hook" x="602" y="322" width="22" height="18" rx="4" fill="#26384b" stroke="none"/>
+              <g id="carried-load">
+                <rect id="load-body" x="578" y="340" width="70" height="52" rx="5" fill="#5e7d9c" stroke-width="5"/>
+                <path id="load-lines" d="M578 356H648M578 376H648M613 340V392" fill="none" stroke="#93b4cf" stroke-width="3"/>
+                <text id="load-label" x="613" y="432" fill="#26384b" font-size="16" text-anchor="middle" font-weight="900" stroke="none">6,000 lb</text>
+              </g>
+              </g>
+            </g>
+
+            <g id="second-crane" opacity=".72" stroke="#596879" stroke-width="4">
+              <rect x="840" y="250" width="42" height="180" fill="#f1efe8"/>
+              <rect x="740" y="230" width="220" height="18" fill="#f1efe8"/>
+              <line x1="795" y1="248" x2="795" y2="305" stroke="#596879" stroke-width="3"/>
+              <rect x="784" y="304" width="22" height="20" fill="#f1efe8"/>
+            </g>
+
+            <g id="staging">
+              <path d="M110 390H390V430H110Z" fill="#7b8d9c" stroke="#596879" stroke-width="4"/>
+              <g id="staged-load-0" data-weight="4000" transform="translate(117 356)">
+                <rect width="58" height="34" rx="4" fill="#e4edf4" stroke="#596879" stroke-width="4"/>
+                <text x="29" y="22" fill="#26384b" font-size="12" text-anchor="middle" font-weight="900" stroke="none">4,000 lb</text>
+              </g>
+              <g id="staged-load-1" data-weight="6000" transform="translate(180 356)">
+                <rect width="58" height="34" rx="4" fill="#e4edf4" stroke="#596879" stroke-width="4"/>
+                <text x="29" y="22" fill="#26384b" font-size="12" text-anchor="middle" font-weight="900" stroke="none">6,000 lb</text>
+              </g>
+              <g id="staged-load-2" data-weight="8000" transform="translate(243 356)">
+                <rect width="58" height="34" rx="4" fill="#e4edf4" stroke="#596879" stroke-width="4"/>
+                <text x="29" y="22" fill="#26384b" font-size="12" text-anchor="middle" font-weight="900" stroke="none">8,000 lb</text>
+              </g>
+              <g id="staged-load-3" data-weight="10000" transform="translate(306 356)">
+                <rect width="58" height="34" rx="4" fill="#e4edf4" stroke="#596879" stroke-width="4"/>
+                <text x="29" y="22" fill="#26384b" font-size="12" text-anchor="middle" font-weight="900" stroke="none">10,000 lb</text>
+              </g>
+              <text x="250" y="452" fill="#26384b" font-size="13" text-anchor="middle" font-weight="900" stroke="none">STAGING</text>
+            </g>
+          </svg>
+        </div>
+
+        <section class="panel controls" aria-label="Crane controls">
+          <div class="control-row">
+            <button class="control" type="button" data-action="trolley-left"><span class="key">A</span> Trolley Left</button>
+            <button class="control" type="button" data-action="trolley-right"><span class="key">D</span> Trolley Right</button>
+          </div>
+          <div class="control-row">
+            <button class="control" type="button" data-action="hook-up"><span class="key">W</span> Hook Up</button>
+            <button class="control" type="button" data-action="hook-down"><span class="key">S</span> Hook Down</button>
+          </div>
+          <div class="control-row">
+            <button class="control" type="button" data-action="jib-left"><span class="key">←</span> Jib Left</button>
+            <button class="control" type="button" data-action="jib-right"><span class="key">→</span> Jib Right</button>
+          </div>
+          <button class="control control-wide" type="button" data-action="pick-set"><span class="key">Enter</span> Pick Up / Set Down</button>
+        </section>
+      </section>
+
+      <aside class="side-panel">
+        <section class="panel" aria-label="Crane load chart">
+          <h2>Load chart</h2>
+          <table class="load-table">
+            <thead>
+              <tr>
+                <th>Radius</th>
+                <th>Capacity</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-chart-radius="50">
+                <td>50 ft</td>
+                <td>20,000 lb</td>
+              </tr>
+              <tr class="current" data-chart-radius="75">
+                <td>75 ft</td>
+                <td>13,000 lb</td>
+              </tr>
+              <tr data-chart-radius="100">
+                <td>100 ft</td>
+                <td>9,000 lb</td>
+              </tr>
+              <tr data-chart-radius="125">
+                <td>125 ft</td>
+                <td>7,000 lb</td>
+              </tr>
+              <tr data-chart-radius="150">
+                <td>150 ft</td>
+                <td>5,500 lb</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="chart-current" id="chart-current">
+            <span id="chart-radius">Current: 75 ft</span>
+            <strong id="chart-capacity">13,000 lb</strong>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="Level and crane status">
+          <h2>Level progress</h2>
+          <p class="warning" id="game-message"><strong>Crane safe</strong><br>Wind: light from the east</p>
+          <div class="levels" aria-label="Five level progress">
+            <span class="level-dot active"></span>
+            <span class="level-dot"></span>
+            <span class="level-dot"></span>
+            <span class="level-dot"></span>
+            <span class="level-dot"></span>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="effect-layer" id="effect-layer" aria-hidden="true"></div>
+  <div class="game-overlay" id="game-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+    <div class="overlay-card">
+      <h2 id="overlay-title">Round paused</h2>
+      <p id="overlay-message">Restart the level.</p>
+      <div class="overlay-actions">
+        <button id="overlay-restart" type="button">Restart Level</button>
+        <button id="overlay-primary" type="button">Start Level</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const app = document.querySelector(".app");
+    const toggle = document.querySelector(".theme-toggle");
+    const label = document.querySelector(".theme-label");
+    const icon = document.querySelector(".sun");
+
+    toggle.addEventListener("click", () => {
+      const dark = app.dataset.theme !== "dark";
+      app.dataset.theme = dark ? "dark" : "light";
+      label.textContent = dark ? "Dark mode" : "Light mode";
+      icon.textContent = dark ? "🌙" : "☀";
+      icon.classList.toggle("moon", dark);
+      toggle.setAttribute(
+        "aria-label",
+        dark ? "Switch to light mode" : "Switch to dark mode"
+      );
+    });
+
+    const craneState = {
+      radius: 75,
+      trolleyX: 613,
+      hookY: 326,
+      jibFacing: 1,
+      turnAngle: 0,
+      turnTarget: 0,
+      carrying: null,
+      windPhase: 0,
+      score: 0,
+      level: 1,
+      timeRemaining: 180,
+      timerRunning: true,
+      tipTriggered: false,
+      collisionCooldown: false,
+      levelActive: false,
+      instructionsSeen: false
+    };
+
+    const chart = [
+      { radius: 50, capacity: 20000 },
+      { radius: 75, capacity: 13000 },
+      { radius: 100, capacity: 9000 },
+      { radius: 125, capacity: 7000 },
+      { radius: 150, capacity: 5500 }
+    ];
+
+    const stagedWeights = [4000, 6000, 8000, 10000];
+    const stagedPositions = [146, 209, 272, 335];
+    const stagedLoads = stagedWeights.map((weight, index) => ({
+      id: `staged-load-${index}`,
+      weight,
+      startX: stagedPositions[index],
+      available: true
+    }));
+    const deliveredTargets = new Set();
+    const levelTargetIds = ["target-a1", "target-a2"];
+
+    const radiusStatus = document.querySelector("#radius-status");
+    const chartRadius = document.querySelector("#chart-radius");
+    const chartCapacity = document.querySelector("#chart-capacity");
+    const capacityStatus = document.querySelector("#capacity-status");
+    const trolleyBody = document.querySelector("#trolley-body");
+    const wheelA = document.querySelector("#wheel-a");
+    const wheelB = document.querySelector("#wheel-b");
+    const craneCable = document.querySelector("#crane-cable");
+    const craneHook = document.querySelector("#crane-hook");
+    const loadBody = document.querySelector("#load-body");
+    const loadLines = document.querySelector("#load-lines");
+    const loadLabel = document.querySelector("#load-label");
+    const craneTop = document.querySelector("#crane-top");
+    const loadStatus = document.querySelector("#load-status");
+    const gameMessage = document.querySelector("#game-message");
+    const timerStatus = document.querySelector("#timer-status");
+    const scoreStatus = document.querySelector("#score-status");
+    const levelTitle = document.querySelector("#level-title");
+    const secondCrane = document.querySelector("#second-crane");
+    const scene = document.querySelector(".scene");
+    const effectLayer = document.querySelector("#effect-layer");
+    const gameOverlay = document.querySelector("#game-overlay");
+    const overlayTitle = document.querySelector("#overlay-title");
+    const overlayMessage = document.querySelector("#overlay-message");
+    const overlayRestart = document.querySelector("#overlay-restart");
+    const overlayPrimary = document.querySelector("#overlay-primary");
+
+    const activeKeys = new Map();
+    let animationFrame = null;
+    let lastFrameTime = 0;
+
+    function currentChartRow() {
+      return chart.find((row) => craneState.radius <= row.radius) || chart[chart.length - 1];
+    }
+
+    function setSvgAttribute(element, attribute, value) {
+      element.setAttribute(attribute, String(value));
+    }
+
+    function formatTimer(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const remainder = seconds % 60;
+      return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+    }
+
+    function updateLevelStatus() {
+      levelTitle.textContent = `Level ${craneState.level} / 5`;
+      timerStatus.textContent = formatTimer(craneState.timeRemaining);
+      scoreStatus.textContent = `${craneState.score.toLocaleString()} pts`;
+      document.querySelectorAll(".level-dot").forEach((dot, index) => {
+        dot.classList.toggle("active", index === craneState.level - 1);
+      });
+    }
+
+    function evaluateLoadSafety() {
+      const row = currentChartRow();
+      const loadWeight = craneState.carrying ? craneState.carrying.weight : 0;
+      if (!loadWeight) {
+        capacityStatus.textContent = "No load";
+        capacityStatus.className = "";
+        return "safe";
+      }
+
+      const percentage = loadWeight / row.capacity;
+      capacityStatus.textContent = `${Math.round(percentage * 100)}% safe`;
+
+      if (percentage >= 1) {
+        capacityStatus.className = "warn";
+        showGameMessage("Tip-over limit", "Load reached 100% or more of capacity.", "bad");
+        triggerTipOver();
+        return "tip";
+      }
+
+      if (percentage >= 0.9) {
+        capacityStatus.className = "warn";
+        showGameMessage("Warning", "Load reached 90% of capacity.", "bad");
+        return "warning";
+      }
+
+      capacityStatus.className = "";
+      if (!gameMessage.classList.contains("good")) {
+        showGameMessage("Crane safe", "Wind: light from the east");
+      }
+      return "safe";
+    }
+
+    function showGameMessage(title, detail, tone = "") {
+      gameMessage.className = `warning${tone ? ` ${tone}` : ""}`;
+      gameMessage.innerHTML = `<strong>${title}</strong><br>${detail}`;
+    }
+
+    function showOverlay(title, message) {
+      craneState.timerRunning = false;
+      craneState.levelActive = false;
+      overlayTitle.textContent = title;
+      overlayMessage.textContent = message;
+      overlayRestart.style.display = "";
+      overlayPrimary.style.display = "none";
+      gameOverlay.classList.add("visible");
+      overlayRestart.focus();
+    }
+
+    function hideOverlay() {
+      gameOverlay.classList.remove("visible");
+    }
+
+    function showInstructions() {
+      craneState.timerRunning = false;
+      craneState.levelActive = false;
+      overlayTitle.textContent = "How to Play";
+      overlayMessage.innerHTML =
+        "<strong>A / D</strong> move the trolley left/right<br>" +
+        "<strong>W / S</strong> raise/lower the hook<br>" +
+        "<strong>← / →</strong> swing the jib<br>" +
+        "<strong>Enter</strong> pick up or set down<br><br>" +
+        "Match every load to every marked unload position. At 90% capacity warning appears; at 100% the crane tips.";
+      overlayRestart.style.display = "none";
+      overlayPrimary.style.display = "";
+      overlayPrimary.textContent = "Start Level";
+      overlayPrimary.onclick = startLevel;
+      gameOverlay.classList.add("visible");
+    }
+
+    function showStartScreen() {
+      craneState.timerRunning = false;
+      craneState.levelActive = false;
+      overlayTitle.textContent = `Level ${craneState.level}`;
+      overlayMessage.textContent =
+        `${deliveredTargets.size ? deliveredTargets.size : 0} deliveries completed on this level. Press Start Level when ready.`;
+      overlayRestart.style.display = "none";
+      overlayPrimary.style.display = "";
+      overlayPrimary.textContent = "Start Level";
+      overlayPrimary.onclick = startLevel;
+      gameOverlay.classList.add("visible");
+    }
+
+    function startLevel() {
+      hideOverlay();
+      craneState.timerRunning = true;
+      craneState.levelActive = true;
+      craneState.timeRemaining = 180;
+      updateLevelStatus();
+    }
+
+    function showNextLevelConfirmation() {
+      craneState.timerRunning = false;
+      craneState.levelActive = false;
+      launchConfetti();
+      overlayTitle.textContent = "Level Complete!";
+      overlayMessage.textContent =
+        craneState.level >= 5
+          ? "You passed all five levels."
+          : `You cleared level ${craneState.level}. Continue to level ${craneState.level + 1}?`;
+      overlayRestart.style.display = "none";
+      overlayPrimary.style.display = "";
+      overlayPrimary.textContent =
+        craneState.level >= 5 ? "Play Again" : "Continue to Next Level";
+      overlayPrimary.onclick = () => {
+        hideOverlay();
+        if (craneState.level >= 5) {
+          craneState.level = 1;
+          craneState.score = 0;
+        } else {
+          craneState.level += 1;
+        }
+        resetCurrentLevel();
+        craneState.levelActive = false;
+        craneState.timerRunning = false;
+        showStartScreen();
+      };
+      gameOverlay.classList.add("visible");
+    }
+
+    function createExplosion() {
+      const sceneRect = scene.getBoundingClientRect();
+      const explosion = document.createElement("div");
+      explosion.className = "explosion";
+      explosion.style.left = `${sceneRect.width * 0.5 - 15}px`;
+      explosion.style.top = `${sceneRect.height * 0.42}px`;
+      effectLayer.appendChild(explosion);
+
+      scene.classList.remove("shake");
+      void scene.offsetWidth;
+      scene.classList.add("shake");
+
+      for (let index = 0; index < 28; index++) {
+        const debris = document.createElement("div");
+        debris.className = "debris";
+        const angle = (Math.PI * 2 * index) / 28;
+        const distance = 180 + Math.random() * 220;
+        debris.style.left = `${sceneRect.width * 0.5}px`;
+        debris.style.top = `${sceneRect.height * 0.42}px`;
+        debris.style.setProperty("--debris-x", `${Math.cos(angle) * distance}px`);
+        debris.style.setProperty("--debris-y", `${Math.sin(angle) * distance + 140}px`);
+        debris.style.background = index % 3 === 0 ? "#f15b35" : index % 2 === 0 ? "#ffd21f" : "#596879";
+        effectLayer.appendChild(debris);
+        window.setTimeout(() => debris.remove(), 1600);
+      }
+      window.setTimeout(() => explosion.remove(), 2100);
+    }
+
+    function launchConfetti() {
+      const colors = ["#ffd21f", "#67d2a5", "#ff7a87", "#83a8df", "#ffffff"];
+      for (let index = 0; index < 120; index++) {
+        const piece = document.createElement("div");
+        piece.className = "confetti";
+        piece.style.left = `${Math.random() * 100}vw`;
+        piece.style.background = colors[index % colors.length];
+        piece.style.setProperty("--confetti-x", `${-120 + Math.random() * 240}px`);
+        piece.style.setProperty("--fall-time", `${2.2 + Math.random() * 2.2}s`);
+        effectLayer.appendChild(piece);
+        window.setTimeout(() => piece.remove(), 4500);
+      }
+    }
+
+    function triggerTipOver() {
+      if (craneState.tipTriggered) return;
+      craneState.tipTriggered = true;
+      craneState.timerRunning = false;
+      createExplosion();
+      showGameMessage("Tip-over!", "The crane collapsed at 100% or more of capacity.", "bad");
+      window.setTimeout(() => {
+        resetCurrentLevel();
+        showGameMessage("Crane reset", "The level has been restored.", "good");
+      }, 1900);
+    }
+
+    function resetStagedLoad(load) {
+      load.available = true;
+      const element = document.querySelector(`#${load.id}`);
+      if (element) element.style.display = "";
+    }
+
+    function randomizeStaging() {
+      const shuffled = [...stagedWeights];
+      for (let index = shuffled.length - 1; index > 0; index--) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[swapIndex]] =
+          [shuffled[swapIndex], shuffled[index]];
+      }
+      stagedLoads.forEach((load, index) => {
+        load.weight = shuffled[index];
+        const element = document.querySelector(`#${load.id}`);
+        if (element) {
+          element.dataset.weight = String(load.weight);
+          const label = element.querySelector("text");
+          if (label) label.textContent = `${load.weight.toLocaleString()} lb`;
+          resetStagedLoad(load);
+        }
+      });
+    }
+
+    function updateDeliveredTarget(targetId, weight) {
+      const target = document.querySelector(`#${targetId}`);
+      if (!target) return;
+      target.setAttribute("fill", "#67d2a5");
+      target.setAttribute("fill-opacity", ".75");
+      target.dataset.deliveredWeight = String(weight);
+    }
+
+    function resetCurrentLevel() {
+      craneState.carrying = null;
+      craneState.timeRemaining = 180;
+      craneState.tipTriggered = false;
+      craneState.radius = 75;
+      craneState.hookY = 326;
+      craneState.jibFacing = 1;
+      craneState.turnAngle = 0;
+      craneState.turnTarget = 0;
+      craneState.levelActive = true;
+      craneState.timerRunning = true;
+      activeKeys.clear();
+      deliveredTargets.clear();
+      levelTargetIds.forEach((targetId) => {
+        const target = document.querySelector(`#${targetId}`);
+        if (!target) return;
+        target.removeAttribute("data-delivered-weight");
+        target.setAttribute("fill", "#aef1b5");
+        target.setAttribute("fill-opacity", ".28");
+        target.classList.remove("drop-ready");
+      });
+      document.querySelector("#target-label-a1").textContent = "A1";
+      document.querySelector("#target-label-a2").textContent = "A2";
+      randomizeStaging();
+      updateLevelStatus();
+      showGameMessage("Level reset", "The crane and staged loads were restored.");
+      updateCrane();
+    }
+
+    function advanceLevel() {
+      if (deliveredTargets.size < levelTargetIds.length) return;
+      showNextLevelConfirmation();
+    }
+
+    function updateCrane() {
+      const trolleyBase = 613;
+      craneState.trolleyX = trolleyBase + (craneState.radius - 75) * 2.84;
+
+      const trolleyWidth = 46;
+      const trolleyCenter = craneState.trolleyX;
+      craneState.windPhase += 0.025;
+      const windSwing = Math.sin(craneState.windPhase) * 18;
+      const cableCenter = trolleyCenter + windSwing;
+      setSvgAttribute(trolleyBody, "x", trolleyCenter - trolleyWidth / 2);
+      setSvgAttribute(wheelA, "cx", trolleyCenter - 12);
+      setSvgAttribute(wheelB, "cx", trolleyCenter + 12);
+
+      setSvgAttribute(craneCable, "x1", trolleyCenter);
+      setSvgAttribute(craneCable, "x2", cableCenter);
+      setSvgAttribute(craneCable, "y2", craneState.hookY);
+
+      setSvgAttribute(craneHook, "x", cableCenter - 11);
+      setSvgAttribute(craneHook, "y", craneState.hookY - 4);
+
+      const loadTop = craneState.hookY + 14;
+      setSvgAttribute(loadBody, "x", cableCenter - 35);
+      setSvgAttribute(loadBody, "y", loadTop);
+      setSvgAttribute(loadLines, "d",
+        `M${cableCenter - 35} ${loadTop + 16}H${cableCenter + 35}` +
+        `M${cableCenter - 35} ${loadTop + 36}H${cableCenter + 35}` +
+        `M${cableCenter} ${loadTop}V${loadTop + 52}`
+      );
+      setSvgAttribute(loadLabel, "x", cableCenter);
+      setSvgAttribute(loadLabel, "y", loadTop + 92);
+      loadLabel.style.transformBox = "fill-box";
+      loadLabel.style.transformOrigin = "center";
+      loadLabel.style.transform =
+        craneState.jibFacing < 0 ? "scaleX(-1)" : "scaleX(1)";
+
+      const pivotX = 500;
+      const pivotY = 95;
+      const radians = craneState.turnAngle * Math.PI / 180;
+      const scaleX = Math.cos(radians);
+      craneTop.setAttribute(
+        "transform",
+        `translate(${pivotX} ${pivotY}) scale(${scaleX} 1) translate(${-pivotX} ${-pivotY})`
+      );
+
+      const carriedWeight = craneState.carrying
+        ? craneState.carrying.weight
+        : null;
+      [loadBody, loadLines, loadLabel].forEach((element) => {
+        element.style.display = carriedWeight ? "" : "none";
+      });
+      loadStatus.textContent = carriedWeight
+        ? `${carriedWeight.toLocaleString()} lb`
+        : "No load";
+      if (carriedWeight) loadLabel.textContent = `${carriedWeight.toLocaleString()} lb`;
+
+      if (carriedWeight) {
+        const hookCenter = getHookCenter();
+        [
+          { id: "target-a1", centerX: 610, yMin: 278, yMax: 342 },
+          { id: "target-a2", centerX: 700, yMin: 358, yMax: 422 }
+        ].forEach((target) => {
+          const ready =
+            !deliveredTargets.has(target.id) &&
+            Math.abs(hookCenter - target.centerX) <= 38 &&
+            craneState.hookY >= target.yMin &&
+            craneState.hookY <= target.yMax;
+          document.querySelector(`#${target.id}`)?.classList.toggle("drop-ready", ready);
+        });
+      } else {
+        levelTargetIds.forEach((targetId) =>
+          document.querySelector(`#${targetId}`)?.classList.remove("drop-ready")
+        );
+      }
+
+      const row = currentChartRow();
+      radiusStatus.textContent = `${Math.round(craneState.radius)} ft`;
+      chartRadius.textContent = `Current: ${Math.round(craneState.radius)} ft`;
+      chartCapacity.textContent = `${row.capacity.toLocaleString()} lb`;
+      evaluateLoadSafety();
+
+      document.querySelectorAll(".load-table tbody tr").forEach((tableRow) => {
+        tableRow.classList.toggle(
+          "current",
+          Number(tableRow.dataset.chartRadius) === row.radius
+        );
+      });
+    }
+
+    function applyAction(action, amount) {
+      if (!craneState.levelActive) return;
+      switch (action) {
+        case "trolley-left":
+          craneState.radius = craneState.jibFacing < 0
+            ? Math.min(150, craneState.radius + amount)
+            : Math.max(50, craneState.radius - amount);
+          break;
+        case "trolley-right":
+          craneState.radius = craneState.jibFacing < 0
+            ? Math.max(50, craneState.radius - amount)
+            : Math.min(150, craneState.radius + amount);
+          break;
+        case "hook-up":
+          craneState.hookY = Math.max(250, craneState.hookY - amount * 2);
+          break;
+        case "hook-down":
+          craneState.hookY = Math.min(400, craneState.hookY + amount * 2);
+          break;
+        case "jib-left":
+          if (craneState.jibFacing !== -1) craneState.turnTarget = 180;
+          craneState.jibFacing = -1;
+          break;
+        case "jib-right":
+          if (craneState.jibFacing !== 1) craneState.turnTarget = 0;
+          craneState.jibFacing = 1;
+          break;
+      }
+      updateCrane();
+    }
+
+    function movementLoop(timestamp) {
+      if (!lastFrameTime) lastFrameTime = timestamp;
+      const elapsed = Math.min(32, timestamp - lastFrameTime);
+      lastFrameTime = timestamp;
+      let stillMoving = false;
+
+      const difference = craneState.turnTarget - craneState.turnAngle;
+      if (Math.abs(difference) > 0.5) {
+        craneState.turnAngle += Math.sign(difference) * Math.min(
+          Math.abs(difference),
+          elapsed * 0.12
+        );
+        stillMoving = true;
+        updateCrane();
+      }
+
+      activeKeys.forEach((pressed, action) => {
+        if (pressed) {
+          stillMoving = true;
+          applyAction(action, elapsed * 0.07);
+        }
+      });
+
+      if (stillMoving) {
+        animationFrame = requestAnimationFrame(movementLoop);
+      } else {
+        animationFrame = null;
+        lastFrameTime = 0;
+      }
+    }
+
+    function startAction(action) {
+      if (action === "pick-set") {
+        handlePickSet();
+        return;
+      }
+      activeKeys.set(action, true);
+      applyAction(action, 1);
+      if (!animationFrame) animationFrame = requestAnimationFrame(movementLoop);
+    }
+
+    function stopAction(action) {
+      activeKeys.delete(action);
+    }
+
+    function getHookCenter() {
+      const trolleyCenter = 613 + (craneState.radius - 75) * 2.84;
+      const windSwing = Math.sin(craneState.windPhase) * 18;
+      const rawHookCenter = trolleyCenter + windSwing;
+      const pivotX = 500;
+      const radians = craneState.turnAngle * Math.PI / 180;
+      const scaleX = Math.cos(radians);
+      return pivotX + (rawHookCenter - pivotX) * scaleX;
+    }
+
+    function handlePickSet() {
+      if (!craneState.levelActive) return;
+      const hookCenter = getHookCenter();
+
+      if (!craneState.carrying) {
+        if (craneState.hookY < 300) {
+          showGameMessage("Hook too high", "Lower the hook to staging height.", "bad");
+          return;
+        }
+
+        const load = stagedLoads.find((item) =>
+          item.available &&
+          Math.abs(hookCenter - item.startX) <= 36 &&
+          craneState.hookY >= 300
+        );
+
+        if (!load) {
+          showGameMessage("No load under hook", "Move the hook over a staging load.", "bad");
+          return;
+        }
+
+        craneState.carrying = load;
+        load.available = false;
+        const element = document.querySelector(`#${load.id}`);
+        if (element) element.style.display = "none";
+        showGameMessage("Load attached", `${load.weight.toLocaleString()} lb suspended.`, "good");
+        updateCrane();
+        return;
+      }
+
+      const load = craneState.carrying;
+      const targets = [
+        { id: "target-a1", labelId: "A1", centerX: 610, yMin: 278, yMax: 342 },
+        { id: "target-a2", labelId: "A2", centerX: 700, yMin: 358, yMax: 422 }
+      ];
+      const target = targets.find((item) =>
+        !deliveredTargets.has(item.id) &&
+        Math.abs(hookCenter - item.centerX) <= 38 &&
+        craneState.hookY >= item.yMin &&
+        craneState.hookY <= item.yMax
+      );
+
+      if (!target) {
+        craneState.carrying = null;
+        resetStagedLoad(load);
+        showGameMessage("Load returned", "Placement missed or target was wrong.", "bad");
+        updateCrane();
+        return;
+      }
+
+      deliveredTargets.add(target.id);
+      updateDeliveredTarget(target.id, load.weight);
+      craneState.score += load.weight;
+      const targetLabel = document.querySelector(`#target-label-${target.id.slice(-2)}`);
+      if (targetLabel) targetLabel.textContent = `${load.weight.toLocaleString()} lb`;
+      craneState.carrying = null;
+      showGameMessage("Load delivered", `${load.weight.toLocaleString()} lb placed at ${target.labelId}.`, "good");
+      updateCrane();
+      updateLevelStatus();
+      advanceLevel();
+    }
+
+    const keyActions = {
+      a: "trolley-left",
+      d: "trolley-right",
+      w: "hook-up",
+      s: "hook-down",
+      ArrowLeft: "jib-left",
+      ArrowRight: "jib-right",
+      Enter: "pick-set"
+    };
+
+    document.querySelectorAll("[data-action]").forEach((button) => {
+      const action = button.dataset.action;
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        button.setPointerCapture?.(event.pointerId);
+        button.classList.add("pressed");
+        startAction(action);
+      });
+      button.addEventListener("pointerup", () => {
+        button.classList.remove("pressed");
+        stopAction(action);
+      });
+      button.addEventListener("pointercancel", () => {
+        button.classList.remove("pressed");
+        stopAction(action);
+      });
+      button.addEventListener("pointerleave", (event) => {
+        if (event.buttons === 0) {
+          button.classList.remove("pressed");
+          stopAction(action);
+        }
+      });
+    });
+
+    window.addEventListener("keydown", (event) => {
+      const action = keyActions[event.key] || keyActions[event.key.toLowerCase()];
+      if (!action) return;
+      event.preventDefault();
+      if (event.repeat && action === "pick-set") return;
+      if (!activeKeys.has(action)) {
+        const button = document.querySelector(`[data-action="${action}"]`);
+        button?.classList.add("pressed");
+        startAction(action);
+      }
+    });
+
+    window.addEventListener("keyup", (event) => {
+      const action = keyActions[event.key] || keyActions[event.key.toLowerCase()];
+      if (!action) return;
+      event.preventDefault();
+      const button = document.querySelector(`[data-action="${action}"]`);
+      button?.classList.remove("pressed");
+      stopAction(action);
+    });
+
+    overlayRestart.addEventListener("click", () => {
+      hideOverlay();
+      resetCurrentLevel();
+    });
+
+    let secondCranePhase = 0;
+    function updateSecondCrane(timestamp) {
+      secondCranePhase += 0.012;
+      const x = Math.sin(secondCranePhase) * 45;
+      secondCrane.setAttribute("transform", `translate(${x} 0)`);
+
+      if (!craneState.collisionCooldown) {
+        const hookCenter = getHookCenter();
+        const secondCraneCenter = 795 + x;
+        if (craneState.hookY > 248 &&
+            craneState.hookY < 430 &&
+            Math.abs(hookCenter - secondCraneCenter) < 42) {
+          craneState.collisionCooldown = true;
+          craneState.timerRunning = false;
+          showGameMessage("Collision!", "Avoid the computer-controlled crane.", "bad");
+          window.setTimeout(() => {
+            resetCurrentLevel();
+            craneState.collisionCooldown = false;
+            craneState.timerRunning = true;
+            showGameMessage("Clear for takeoff", "Collision reset complete.", "good");
+          }, 900);
+        }
+      }
+    }
+
+    randomizeStaging();
+    updateLevelStatus();
+    updateCrane();
+    showInstructions();
+    window.setInterval(() => {
+      if (craneState.timerRunning) {
+        craneState.timeRemaining = Math.max(0, craneState.timeRemaining - 1);
+        updateLevelStatus();
+        if (craneState.timeRemaining === 0) {
+          craneState.timerRunning = false;
+          showGameMessage("Time expired", "Restart this level to try again.", "bad");
+          showOverlay("Time expired", "Restart this level and try again.");
+        }
+      }
+      updateSecondCrane();
+      updateCrane();
+    }, 1000);
+  </script>
+</body>
+</html>
