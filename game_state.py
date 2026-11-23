@@ -19,6 +19,7 @@ class Target:
     label: str
     radius_ft: float
     height_ft: float
+    swing: float
 
 
 class GameState:
@@ -37,13 +38,14 @@ class GameState:
         self.message = ""
         self.setup_level(1)
 
-    def setup_level(self, level: int) -> None:
+    def setup_level(self, level: int, selected_weights=None) -> None:
         self.level = level
         rng = random.Random(4100 + level)
-        self.loads = [Load(weight) for weight in LOAD_CHOICES]
+        selected_weights = selected_weights if selected_weights is not None else random.sample(LOAD_CHOICES, 2)
+        self.loads = [Load(weight, selected=weight in selected_weights) for weight in LOAD_CHOICES]
         self.targets = [
-            Target("A", 75 + (level - 1) * 7, 25 + (level % 3) * 8),
-            Target("B", 125 - (level - 1) * 5, 55 + ((level + 1) % 3) * 7),
+            Target("A", 60 + (level - 1), 25 + (level % 3) * 8, -0.6),
+            Target("B", 70 + (level - 1), 55 + ((level + 1) % 3) * 7, 0.6),
         ]
         self.wind = round(rng.uniform(0.5, 2.2), 1)
         self.wind_direction = rng.choice((-1, 1))
@@ -52,7 +54,7 @@ class GameState:
         self.running = False
         self.finished = False
         self.won = False
-        self.message = "Choose two loads, then start the level."
+        self.message = "Two loads selected. Press Start Level."
 
     @property
     def selected_count(self) -> int:
@@ -109,7 +111,7 @@ class GameState:
                 self.running = False
                 self.finished = True
                 self.won = True
-                self.message = "Level complete! Continue when ready."
+                self.message = "All levels complete!" if self.level == 5 else "Level complete! Continue when ready."
             return ("delivered", index)
         self.message = "Invalid placement. Load returned to staging."
         return ("returned", index)
@@ -122,13 +124,15 @@ class GameState:
             self.running = False
             self.finished = True
             self.won = False
-            self.message = "Time expired. Retry the level or continue."
+            self.message = "Time expired. Retry the level."
             return True
         return False
 
     def retry(self) -> None:
-        self.setup_level(self.level)
+        self.score -= sum(load.weight_lb for load in self.loads if load.delivered_to is not None)
+        self.setup_level(self.level, [load.weight_lb for load in self.loads if load.selected])
 
     def advance(self) -> None:
-        self.setup_level(self.level + 1)
+        if self.won and self.level < 5:
+            self.setup_level(self.level + 1)
 

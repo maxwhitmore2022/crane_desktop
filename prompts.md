@@ -45,3 +45,11 @@
 - **Asked:** Commit the jib swing fix and related changes.
 - **Changed:** Recorded this commit request; staging is pending.
 - **Worked:** Pending commit verification.
+
+- **Asked:** Reported that clicking controls did not respond.
+- **Changed:** Throttled the Matplotlib scene/chart redraw to about 6 frames per second and avoided rewriting the status label when its text has not changed, so Tkinter gets more time to process clicks and keyboard events.
+- **Worked:** Python syntax check passed. The GUI has not yet been rechecked with interactive clicks.
+
+- **Asked:** Replace the graph with a table, randomly preselect two loads, require crane swing, add crane color selection, test the game five times, and commit the changes.
+- **Changed:** Replaced the chart graph with a highlighted capacity table; preselected two random loads while allowing changes before starting; added target swing angles and visible swing feedback; added a crane color picker; restored level score on retry and stopped advancement after level five. Included the existing redraw throttling changes.
+- **Worked:** Five separate Tkinter runs passed checks for starting and movement, color selection and rendering, swing-gated delivery, two-load completion and level advancement, and retry plus load-chart boundaries. These runs invoked controls programmatically rather than using physical mouse clicks. Commit requested.

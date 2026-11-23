@@ -1,7 +1,7 @@
 """Matplotlib crane scene and load-chart view embedded in Tkinter."""
 
 import math
-import numpy as np
+import time
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -16,9 +16,16 @@ class CraneScene:
         self.widget = FigureCanvasTkAgg(self.figure, master=parent)
         self.widget.get_tk_widget().pack(fill="both", expand=True)
         self.theme = "light"
+        self.crane_color = "#ffd21f"
         self.phase = 0.0
+        self.last_draw = 0.0
+        self.draw_interval = 0.16  # Keep Matplotlib work below 7 frames per second.
 
     def draw(self, state, radius, height, angle, load_weight, capacity):
+        now = time.monotonic()
+        if now - self.last_draw < self.draw_interval:
+            return
+        self.last_draw = now
         dark = self.theme == "dark"
         bg, fg = ("#111827", "#f4f7fb") if dark else ("#eef2f6", "#172033")
         panel, sky = ("#1c2535", "#1b3550") if dark else ("#ffffff", "#dff3fb")
@@ -42,17 +49,18 @@ class CraneScene:
             ax.add_patch(Rectangle((105, y), 24, 13,
                 facecolor="#8996a5", edgecolor=fg, alpha=.8))
             ax.text(117, y + 6, "A" if floor % 2 == 0 else "B", ha="center", color=fg, fontsize=9)
-        ax.plot([50, 50], [8, 108], color="#ffd21f", linewidth=7, solid_capstyle="round")
-        ax.plot([50, 145], [108, 108], color="#ffd21f", linewidth=6)
+        ax.plot([50, 50], [8, 108], color=self.crane_color, linewidth=7, solid_capstyle="round")
+        boom_end = 50 + 95 * math.cos(angle)
+        ax.plot([50, boom_end], [108, 108], color=self.crane_color, linewidth=6)
         ax.add_patch(Rectangle((48, 8), 5, 100,
-            facecolor="#ffd21f", edgecolor="#d69c00"))
+            facecolor=self.crane_color, edgecolor=fg))
         trolley = 50 + (radius - 50) * math.cos(angle)
-        ax.plot([trolley, trolley], [108, height], color=fg, linewidth=1.5)
         ax.scatter([trolley], [108], marker="s", s=70, color="#dc4c5a", zorder=5)
         sway = 0
         if state.carried is not None:
             sway = math.sin(self.phase) * state.wind * state.wind_direction * 1.5
         hx = trolley + sway
+        ax.plot([trolley, hx], [108, height], color=fg, linewidth=1.5)
         ax.plot([hx], [height], marker="v", markersize=9, color="#dc4c5a")
         if state.carried is not None:
             weight = state.loads[state.carried].weight_lb
@@ -69,9 +77,10 @@ class CraneScene:
             ax.text(x, 23, f"{item.weight_lb//1000}k", ha="center", fontsize=7, color=fg)
         for i, target in enumerate(state.targets):
             filled = any(item.delivered_to == i for item in state.loads)
-            ax.scatter([target.radius_ft], [target.height_ft], s=160, marker="s",
+            target_x = 50 + (target.radius_ft - 50) * math.cos(target.swing)
+            ax.scatter([target_x], [target.height_ft], s=160, marker="s",
                        facecolors="#2aa876" if filled else "none", edgecolors="#2aa876", linewidths=2)
-            ax.text(target.radius_ft, target.height_ft + 8, target.label, ha="center", color=fg)
+            ax.text(target_x, target.height_ft + 8, f"{target.label} {math.degrees(target.swing):+.0f}°", ha="center", color=fg, fontsize=8)
         # Predictable, independent second crane cycle.
         self.phase += .06
         other_x = 82 + 20 * math.sin(self.phase / 2)
@@ -83,23 +92,19 @@ class CraneScene:
                 transform=ax.transAxes, va="top", color=fg)
 
         ca = self.chart
-        radii = [row[0] for row in LOAD_CHART]
-        capacities = [row[1] for row in LOAD_CHART]
-        ca.plot(capacities, radii, marker="o", color="#4a70b5")
         ca.set_title("Load chart", color=fg)
-        ca.set_xlabel("Capacity (lb)", color=fg)
-        ca.set_ylabel("Radius (ft)", color=fg)
-        ca.set_yticks(radii)
-        ca.grid(alpha=.25)
-        ca.invert_xaxis()
-        ca.axhline(radius, color="#dc4c5a", linestyle="--", linewidth=1)
-        ca.scatter([capacity], [radius], color="#dc4c5a", s=55, zorder=5)
-        ca.text(.05, .05, "Radius  Capacity (lb)\n" + "\n".join(f"{r:>3.0f} ft      {c:,}" for r, c in LOAD_CHART),
-                transform=ca.transAxes, fontsize=8, color=fg, va="bottom",
-                bbox={"facecolor": panel, "alpha": .85, "edgecolor": fg})
-        if load_weight and capacity:
-            fraction = load_weight / capacity
-            ca.text(.04, .96, f"Load: {load_weight:,} lb · {fraction:.1%}", transform=ca.transAxes,
-                    va="top", color="#dc4c5a" if fraction >= .9 else fg)
+        ca.axis("off")
+        rows = [[f"{r:.0f} ft", f"{c:,} lb"] for r, c in LOAD_CHART]
+        table = ca.table(cellText=rows, colLabels=["Radius", "Capacity"], loc="center", cellLoc="center")
+        table.auto_set_font_size(False)
+        table.set_fontsize(11)
+        table.scale(1, 2.2)
+        active = next(i for i, (r, _) in enumerate(LOAD_CHART) if radius <= r)
+        for (row, col), cell in table.get_celld().items():
+            cell.set_facecolor("#2aa876" if row == active + 1 else panel)
+            cell.set_edgecolor(fg)
+            cell.get_text().set_color(fg)
+        ca.text(.5, .1, f"Current radius: {radius:.1f} ft\nLoad: {load_weight:,} lb",
+                transform=ca.transAxes, ha="center", color=fg)
         self.widget.draw_idle()
 
