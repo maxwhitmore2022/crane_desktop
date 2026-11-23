@@ -65,3 +65,15 @@
 - **Asked:** Make the drop-off location light up after delivery and commit the changes.
 - **Changed:** Added a persistent green glow and delivered-weight label to completed targets, while keeping the yellow ready-to-drop highlight. Included the larger target and easier drop tolerances in the commit.
 - **Worked:** Yes — a Tkinter check confirmed the ready indicator, delivered glow and label, and clearing the glow on retry. Changes are being committed.
+
+- **Asked:** Reported that the delivery target never lit up when the load was ready to drop.
+- **Changed:** Aligned the drop check with the drawn load's wind sway and center, added a separate prominent readiness message and current swing guidance, and placed a DROP label directly on the lit target.
+- **Worked:** A Tkinter check passed using keyboard events to pick up and deliver a load; it confirmed the readiness message and highlighted target with wind present. Physical interaction remains to be checked by the user.
+
+- **Asked:** Clarify which jib angle each drop-off needs and how to change it.
+- **Changed:** Added a persistent current-angle and target-angle guide, labeled each target with its angle and arrow direction, and expanded the startup instructions and control labels to explain the left and right arrow keys.
+- **Worked:** Yes — a Tkinter check confirmed the instructions and target angles and verified that the displayed angle changes when the left and right keys are pressed.
+
+- **Asked:** Commit the recent changes.
+- **Changed:** Included the delivery readiness fix, clearer jib angle guidance, and prompt log in the commit.
+- **Worked:** The previous Tkinter checks passed; commit verification follows.

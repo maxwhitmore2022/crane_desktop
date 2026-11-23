@@ -47,12 +47,18 @@ class CraneApp:
         self.status = tk.StringVar()
         self.last_status = None
         tk.Label(self.main, textvariable=self.status, anchor="w", font=("TkDefaultFont", 10, "bold")).pack(fill="x")
+        self.drop_hint = tk.StringVar(value="Pick up a load to see delivery guidance.")
+        tk.Label(self.main, textvariable=self.drop_hint, anchor="center",
+                 font=("TkDefaultFont", 12, "bold"), fg="#164b25").pack(fill="x", pady=3)
+        self.angle_guide = tk.StringVar()
+        tk.Label(self.main, textvariable=self.angle_guide, anchor="center",
+                 font=("TkDefaultFont", 11, "bold")).pack(fill="x")
         self.load_bar = tk.Frame(self.main)
         self.load_bar.pack(fill="x", pady=4)
         self.load_buttons = []
         self.refresh_load_buttons()
         self.controls = tk.Label(self.main,
-            text="A/D trolley · W/S hook · ←/→ swing jib to the target angle · Enter pick up / set down",
+            text="A/D: trolley · W/S: hook · Hold ← for a more negative angle or → for a more positive angle · Enter: pick up / drop",
             anchor="w", justify="left", wraplength=1000)
         self.controls.pack(fill="x", pady=(4, 0))
 
@@ -60,7 +66,13 @@ class CraneApp:
         root.bind_all("<KeyRelease>", self.key_up)
         root.protocol("WM_DELETE_WINDOW", root.destroy)
         self.refresh()
-        messagebox.showinfo("How to play", "Two loads are selected at random. You can change them before starting. Use A/D to move the trolley, W/S to raise or lower the hook, and the arrow keys to swing to the angle shown at each target. Press Enter to pick up or deliver. Capacity caution starts at 90%; the crane tips at 100%. Deliver both loads to pass the level.", parent=root)
+        messagebox.showinfo("How to play", "Two loads are selected at random; you can change them before starting.\n\n"
+            "Use A/D to move the trolley and W/S to raise or lower the hook. Press Enter above staging to pick up a load.\n\n"
+            "Each drop target shows its required jib angle. Target A needs about −34°; target B needs about +34°. "
+            "Hold the left arrow to decrease the angle (toward −34°), or the right arrow to increase it (toward +34°). "
+            "Compare the current angle with the target angles displayed below the scene.\n\n"
+            "Move the load inside the target and match its angle. When the target lights up and says DROP, press Enter. "
+            "Capacity caution starts at 90%; the crane tips at 100%. Deliver both loads to pass the level.", parent=root)
         root.focus_force()
         self.root.after(30, self.loop)
 
@@ -120,14 +132,17 @@ class CraneApp:
                 continue
             target_x = 50 + (target.radius_ft - 50) * math.cos(target.swing)
             if (abs(hook_x - target_x) <= TARGET_X_TOLERANCE
-                    and abs(self.height - target.height_ft) <= TARGET_HEIGHT_TOLERANCE
+                    and abs((self.height - 4.5) - target.height_ft) <= TARGET_HEIGHT_TOLERANCE
                     and abs(self.angle - target.swing) <= TARGET_SWING_TOLERANCE):
                 return i
         return None
 
     def horizontal_position(self):
-        """Side-view projection of the jib trolley position."""
-        return 50 + (self.radius - 50) * math.cos(self.angle)
+        """Horizontal position of the visible hook and suspended load."""
+        x = 50 + (self.radius - 50) * math.cos(self.angle)
+        if self.state.carried is not None:
+            x += math.sin(self.scene.phase) * self.state.wind * self.state.wind_direction * 1.5
+        return x
 
     def enter_action(self):
         if self.state.carried is None:
@@ -165,6 +180,7 @@ class CraneApp:
         dt = min(.1, elapsed)
         self.last = now
         if self.state.running:
+            self.scene.phase += dt * .375
             speed = 35 * dt
             self.radius = clamp_radius(self.radius + speed * (int("d" in self.held) - int("a" in self.held)))
             self.height = max(12, min(100, self.height + speed * 1.3 * (int("w" in self.held) - int("s" in self.held))))
@@ -206,8 +222,18 @@ class CraneApp:
         minutes, seconds = divmod(int(self.state.remaining), 60)
         condition = "TIP LIMIT" if weight and is_overloaded(weight, capacity) else ("CAUTION ≥90%" if caution else "Safe")
         ready_target = self.nearest_target() if self.state.running and self.state.carried is not None else None
+        targets = "    ".join(f"{t.label}: {math.degrees(t.swing):+.0f}° ({'left' if t.swing < 0 else 'right'})"
+                              for t in self.state.targets)
+        self.angle_guide.set(f"Jib angle: {math.degrees(self.angle):+.0f}°    |    Drop angles: {targets}    |    ← decrease   → increase")
         if ready_target is not None:
             condition += f"    READY TO DROP AT {self.state.targets[ready_target].label} — press Enter"
+            self.drop_hint.set(f"READY TO DROP AT {self.state.targets[ready_target].label} — PRESS ENTER")
+        elif self.state.running and self.state.carried is not None:
+            self.drop_hint.set(f"Move the load into a target and match its angle. Swing: {math.degrees(self.angle):+.0f}°")
+        elif self.state.delivered_count:
+            self.drop_hint.set(f"Delivered: {self.state.delivered_count} of 2 loads")
+        else:
+            self.drop_hint.set("Pick up a load to see delivery guidance.")
         carried_text = f"{weight:,} lb" if weight else "None"
         safety = f"    Safety {weight/capacity:.1%}" if weight else ""
         status_text = (

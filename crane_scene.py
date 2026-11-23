@@ -94,10 +94,12 @@ class CraneScene:
             if filled:
                 ax.text(target_x, target.height_ft, f"✓ {delivered.weight_lb:,} lb", ha="center",
                         va="center", color="#102a17", fontsize=8, fontweight="bold", zorder=8)
+            elif ready:
+                ax.text(target_x, target.height_ft, "DROP!", ha="center", va="center",
+                        color="#332400", fontsize=10, fontweight="bold", zorder=8)
             ax.text(target_x, target.height_ft + TARGET_HEIGHT_TOLERANCE + 3,
-                    f"{target.label} {math.degrees(target.swing):+.0f}°", ha="center", color=fg, fontsize=8)
+                    f"{target.label}: {math.degrees(target.swing):+.0f}° {'←' if target.swing < 0 else '→'}", ha="center", color=fg, fontsize=8)
         # Predictable, independent second crane cycle.
-        self.phase += .06
         other_x = 82 + 20 * math.sin(self.phase / 2)
         ax.plot([other_x, other_x], [70, 100], color="#4a70b5", linewidth=4)
         ax.plot([other_x, other_x + 22], [100, 100], color="#4a70b5", linewidth=4)
