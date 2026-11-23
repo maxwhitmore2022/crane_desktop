@@ -29,3 +29,11 @@
 - **Asked:** Commit the changes and clear the working tree.
 - **Changed:** Added the initial project files (`AGENTS.md`, `index.html`, `prompts.md`, and `spec.md`) to Git and recorded this request.
 - **Worked:** Yes — committed as `8284add`; the working tree is clean.
+
+- **Asked:** Implement the plan to build the crane game as a Python Tkinter desktop app.
+- **Changed:** Added `app.py`, `game_state.py`, `crane_calculations.py`, and `crane_scene.py` for the desktop UI, game rules, load-chart calculations, and Matplotlib scene/chart. Added load selection, movement, pickup and setdown, scoring, timer, retries and level transitions, theme toggle, wind, second-crane collision checks, and capacity warning/tip handling.
+- **Worked:** Python syntax check passed. The app was not launched in this environment, so interactive behavior remains unverified.
+
+- **Asked:** Commit the changes and clear the working tree.
+- **Changed:** Recorded this request; staging and commit are pending.
+- **Worked:** Yes — committed as `c4d11e0`; the working tree is clean.
